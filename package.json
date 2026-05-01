@@ -1,0 +1,19 @@
+{
+  "name": "hues-and-clues",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Multiplayer ESL color-guessing game (Node + WebSocket backend, React frontend).",
+  "scripts": {
+    "install:server": "npm install --prefix server",
+    "install:client": "npm install --prefix client",
+    "install:all": "npm run install:server && npm run install:client",
+    "build:client": "npm run build --prefix client",
+    "build": "npm run install:client && npm run build:client",
+    "start": "npm run install:server && npm start --prefix server",
+    "dev:server": "npm run dev --prefix server",
+    "dev:client": "npm run dev --prefix client"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

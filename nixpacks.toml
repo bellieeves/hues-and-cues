@@ -1,0 +1,17 @@
+# Railway / Nixpacks build configuration.
+#
+# The root package.json's `build` script installs client deps and builds
+# client/dist. The `start` script then installs server deps and runs the
+# Node server, which serves both the WebSocket and the built client.
+
+[phases.setup]
+nixPkgs = ["nodejs_20", "npm-9_x"]
+
+[phases.install]
+cmds = ["npm install --prefix server", "npm install --prefix client"]
+
+[phases.build]
+cmds = ["npm run build --prefix client"]
+
+[start]
+cmd = "npm start --prefix server"
