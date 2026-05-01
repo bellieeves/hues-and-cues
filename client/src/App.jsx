@@ -95,6 +95,19 @@ function containsForbidden(text) {
   });
 }
 
+// ─── Responsive helper ───────────────────────────────────────────────────────
+function useIsMobile(breakpoint = 720) {
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" && window.innerWidth < breakpoint
+  );
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < breakpoint);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [breakpoint]);
+  return isMobile;
+}
+
 // ─── WebSocket multiplayer hook ───────────────────────────────────────────────
 function useMultiplayer(roomId, myName) {
   const [gameState, setGameState] = useState(null);
@@ -373,13 +386,14 @@ function Lobby({ onJoin }) {
   const [name, setName] = useState("");
   const [room, setRoom] = useState("");
   const [mode, setMode] = useState(null); // "create" | "join"
+  const isMobile = useIsMobile();
 
   const randomRoom = () => Math.random().toString(36).slice(2, 7).toUpperCase();
 
   return (
-    <div style={{ maxWidth: 460, margin: "60px auto" }}>
-      <div style={{ textAlign: "center", marginBottom: 40 }}>
-        <h1 style={styles.title}>Hues & Clues</h1>
+    <div style={{ maxWidth: 460, margin: isMobile ? "24px auto" : "60px auto" }}>
+      <div style={{ textAlign: "center", marginBottom: isMobile ? 28 : 40 }}>
+        <h1 style={{ ...styles.title, fontSize: isMobile ? 30 : 38 }}>Hues & Clues</h1>
         <p style={{ color: "#6666aa", fontSize: 15, marginTop: 8 }}>
           An ESL color description game
         </p>
@@ -448,6 +462,7 @@ function GameRoom({ myId, roomId, gameState, send, error }) {
   const [clue2, setClue2] = useState("");
   const [forbidden, setForbidden] = useState(null);
   const [selectedColor, setSelectedColor] = useState(null);
+  const isMobile = useIsMobile();
 
   const amDescriber = gameState?.describerIndex !== undefined
     && gameState?.players?.[gameState.describerIndex]?.id === myId;
@@ -521,9 +536,13 @@ function GameRoom({ myId, roomId, gameState, send, error }) {
         }}>⚠ {error}</div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "200px 1fr", gap: 20 }}>
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: isMobile ? "1fr" : "200px 1fr",
+        gap: isMobile ? 14 : 20,
+      }}>
         {/* Sidebar: players */}
-        <div style={styles.card}>
+        <div style={{ ...styles.card, order: isMobile ? 2 : 0, padding: isMobile ? 16 : 24 }}>
           <div style={styles.label}>Players</div>
           {gameState.players?.map((p, i) => (
             <div key={p.id} style={{
@@ -573,7 +592,7 @@ function GameRoom({ myId, roomId, gameState, send, error }) {
         </div>
 
         {/* Main area */}
-        <div>
+        <div style={{ order: isMobile ? 1 : 0, minWidth: 0 }}>
           {/* Clue display */}
           {(gameState.clue1 || gameState.clue2) && (
             <div style={{ ...styles.card, marginBottom: 16 }}>
@@ -598,8 +617,14 @@ function GameRoom({ myId, roomId, gameState, send, error }) {
 
           {/* DESCRIBER: clue input */}
           {amDescriber && phase === "clue1" && (
-            <div style={{ ...styles.card, marginBottom: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16 }}>
+            <div style={{ ...styles.card, marginBottom: 16, padding: isMobile ? 16 : 24 }}>
+              <div style={{
+                display: "flex",
+                flexDirection: isMobile ? "column" : "row",
+                alignItems: isMobile ? "flex-start" : "center",
+                gap: isMobile ? 10 : 16,
+                marginBottom: 16,
+              }}>
                 <div>
                   <span style={styles.label}>Your Secret Color</span>
                   {targetColor && <ColorSwatch color={targetColor} size={64} />}
@@ -701,8 +726,15 @@ function GameRoom({ myId, roomId, gameState, send, error }) {
 
           {/* GUESSER: palette */}
           {!amDescriber && (phase === "guessing1" || phase === "guessing2") && (
-            <div style={{ ...styles.card, marginBottom: 16 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <div style={{ ...styles.card, marginBottom: 16, padding: isMobile ? 14 : 24 }}>
+              <div style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: isMobile ? "flex-start" : "center",
+                marginBottom: 12,
+                flexWrap: "wrap",
+                gap: 10,
+              }}>
                 <div>
                   <span style={styles.label}>Click your best guess!</span>
                   {selectedColor && (
@@ -765,8 +797,14 @@ function GameRoom({ myId, roomId, gameState, send, error }) {
 
           {/* RESULTS */}
           {phase === "results" && (
-            <div style={{ ...styles.card, marginBottom: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20 }}>
+            <div style={{ ...styles.card, marginBottom: 16, padding: isMobile ? 16 : 24 }}>
+              <div style={{
+                display: "flex",
+                flexDirection: isMobile ? "column" : "row",
+                alignItems: isMobile ? "flex-start" : "center",
+                gap: 16,
+                marginBottom: 20,
+              }}>
                 <div>
                   <span style={styles.label}>The Answer Was</span>
                   {targetColor && <ColorSwatch color={targetColor} size={72} />}
@@ -774,7 +812,7 @@ function GameRoom({ myId, roomId, gameState, send, error }) {
                     {targetColor?.hex}
                   </div>
                 </div>
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: 1, width: "100%", minWidth: 0 }}>
                   <PaletteGrid
                     guesses={gameState.guesses}
                     targetId={gameState.targetColorId}
@@ -849,6 +887,8 @@ function GameRoom({ myId, roomId, gameState, send, error }) {
 
 export default function App() {
   const [joined, setJoined] = useState(null); // { name, roomId }
+  const isMobile = useIsMobile();
+  const appStyle = { ...styles.app, padding: isMobile ? 12 : 20 };
   const { gameState, myId, connected, error, send } = useMultiplayer(
     joined?.roomId,
     joined?.name,
@@ -856,7 +896,7 @@ export default function App() {
 
   if (!joined) {
     return (
-      <div style={styles.app}>
+      <div style={appStyle}>
         <Lobby onJoin={(name, roomId) => setJoined({ name, roomId })} />
       </div>
     );
@@ -864,7 +904,7 @@ export default function App() {
 
   if (!connected || !myId) {
     return (
-      <div style={styles.app}>
+      <div style={appStyle}>
         <div style={{ textAlign: "center", padding: 60, color: "#6666aa" }}>
           {connected ? "Joining room…" : "Connecting to server…"}
           {error && (
@@ -876,7 +916,7 @@ export default function App() {
   }
 
   return (
-    <div style={styles.app}>
+    <div style={appStyle}>
       <GameRoom
         myId={myId}
         roomId={joined.roomId}
