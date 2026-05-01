@@ -629,7 +629,16 @@ function GameRoom({ myId, roomId, gameState, send, error }) {
                   ❌ Forbidden word detected: <strong>"{forbidden}"</strong>. Try another description!
                 </div>
               )}
-              <button style={styles.btn("primary")} onClick={submitClue1}>
+              {!forbidden && clue1.trim().length > 0 && clue1.trim().length < 5 && (
+                <div style={{ color: "#8888aa", fontSize: 12, marginBottom: 8 }}>
+                  Need at least 5 characters ({clue1.trim().length}/5)
+                </div>
+              )}
+              <button
+                style={{ ...styles.btn("primary"), opacity: clue1.trim().length < 5 ? 0.55 : 1 }}
+                onClick={submitClue1}
+                disabled={clue1.trim().length < 5}
+              >
                 Send Clue 1 →
               </button>
             </div>
@@ -659,7 +668,16 @@ function GameRoom({ myId, roomId, gameState, send, error }) {
                   ❌ Forbidden word: <strong>"{forbidden}"</strong>
                 </div>
               )}
-              <button style={styles.btn("primary")} onClick={submitClue2}>
+              {!forbidden && clue2.trim().length > 0 && clue2.trim().length < 3 && (
+                <div style={{ color: "#8888aa", fontSize: 12, marginBottom: 8 }}>
+                  Need at least 3 characters ({clue2.trim().length}/3)
+                </div>
+              )}
+              <button
+                style={{ ...styles.btn("primary"), opacity: clue2.trim().length < 3 ? 0.55 : 1 }}
+                onClick={submitClue2}
+                disabled={clue2.trim().length < 3}
+              >
                 Send Clue 2 →
               </button>
             </div>
