@@ -672,11 +672,24 @@ function GameRoom({ myId, roomId, gameState, send, error }) {
           {/* DESCRIBER: waiting for guesses, then clue 2 */}
           {amDescriber && phase === "guessing1" && (
             <div style={{ ...styles.card, marginBottom: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16, flexWrap: "wrap" }}>
                 <ColorSwatch color={targetColor} size={52} />
-                <div>
-                  <div style={{ color: "#4ade80", fontSize: 14 }}>
-                    ✅ Clue 1 sent! Players are guessing… ({guessCount}/{nonDescriberCount} guessed)
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <div style={{ color: "#4ade80", fontSize: 14, marginBottom: 6 }}>
+                    ✅ Clue 1 sent! ({guessCount}/{nonDescriberCount} picked)
+                  </div>
+                  <div style={{
+                    display: "inline-flex", alignItems: "center", gap: 8,
+                    background: "rgba(74,222,128,0.12)", border: "1px solid rgba(74,222,128,0.35)",
+                    borderRadius: 8, padding: "4px 10px",
+                    color: "#86efac", fontSize: 13, fontWeight: 600,
+                  }}>
+                    🎯 {gameState.correctGuessCount ?? 0}/{nonDescriberCount} guessed the color
+                  </div>
+                  <div style={{ color: "#6666aa", fontSize: 11, marginTop: 6, fontStyle: "italic" }}>
+                    {(gameState.correctGuessCount ?? 0) === nonDescriberCount && nonDescriberCount > 0
+                      ? "Everyone got it! Clue 2 is optional — but they'll lock in once you send it."
+                      : "If most are off, give a more specific clue 2."}
                   </div>
                 </div>
               </div>
@@ -841,7 +854,12 @@ function GameRoom({ myId, roomId, gameState, send, error }) {
                           color: p.lastPts >= 3 ? "#4ade80" : p.lastPts >= 1 ? "#fbbf24" : "#f87171",
                           fontWeight: 700, marginRight: 12,
                         }}>
-                          {p.lastPts >= 3 ? "🎯 +" : p.lastPts >= 1 ? "⭐ +" : "💨 +"}{p.lastPts} pts
+                          {p.lastViaClue1 ? "⚡ +" : p.lastPts >= 3 ? "🎯 +" : p.lastPts >= 1 ? "⭐ +" : "💨 +"}{p.lastPts} pts
+                          {p.lastViaClue1 && (
+                            <span style={{ fontSize: 10, fontWeight: 500, marginLeft: 4, opacity: 0.85 }}>
+                              (Clue 1 bonus)
+                            </span>
+                          )}
                         </span>
                       )}
                       <span style={{ color: "#8888aa" }}>Total: </span>

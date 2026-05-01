@@ -82,9 +82,27 @@ function newRoom(code) {
     clue1: null,
     clue2: null,
     guesses: {},
+    clue1Guesses: {}, // snapshot of guesses at the moment clue 2 was submitted
     ready: {},
     round: 1,
   };
+}
+
+// "Got the color" threshold — distance < 0.18 → score >= 4.
+const CORRECT_SCORE_THRESHOLD = 4;
+const CLUE1_BONUS = 3;
+
+function correctGuessersDuringClue1(room) {
+  if (!room.targetColorId) return 0;
+  const target = PALETTE_BY_ID.get(room.targetColorId);
+  let n = 0;
+  const describerId = room.players[room.describerIndex]?.id;
+  for (const [pid, colorId] of Object.entries(room.guesses)) {
+    if (pid === describerId) continue;
+    const c = PALETTE_BY_ID.get(colorId);
+    if (c && scoreFromDistance(colorDistance(target, c)) >= CORRECT_SCORE_THRESHOLD) n += 1;
+  }
+  return n;
 }
 
 function publicState(room) {
@@ -101,12 +119,19 @@ function publicState(room) {
   };
 }
 
-// Only the current describer sees targetColorId during a live round
+// Only the current describer sees targetColorId during a live round.
+// The describer also sees a live "correct guesses" tally during phase 1,
+// to help decide whether clue 2 is needed.
 function stateFor(room, playerId) {
   const base = publicState(room);
   const describer = room.players[room.describerIndex];
-  if (describer && describer.id === playerId && room.phase !== "results") {
-    base.targetColorId = room.targetColorId;
+  if (describer && describer.id === playerId) {
+    if (room.phase !== "results") {
+      base.targetColorId = room.targetColorId;
+    }
+    if (room.phase === "guessing1") {
+      base.correctGuessCount = correctGuessersDuringClue1(room);
+    }
   }
   return base;
 }
@@ -172,8 +197,9 @@ function handleStartRound(ws, room) {
   room.clue1 = null;
   room.clue2 = null;
   room.guesses = {};
+  room.clue1Guesses = {};
   room.ready = {};
-  room.players = room.players.map(p => ({ ...p, lastPts: undefined }));
+  room.players = room.players.map(p => ({ ...p, lastPts: undefined, lastViaClue1: false }));
   broadcast(room);
 }
 
@@ -203,6 +229,9 @@ function handleClue(ws, room, text, which) {
     room.clue1 = clean;
     room.phase = "guessing1";
   } else {
+    // Snapshot the clue-1 guesses so we can award the early-correct bonus
+    // even if a player revises their pick after seeing clue 2.
+    room.clue1Guesses = { ...room.guesses };
     room.clue2 = clean;
     room.phase = "guessing2";
   }
@@ -266,13 +295,26 @@ function handleReveal(ws, room) {
 
   const target = PALETTE_BY_ID.get(room.targetColorId);
   const newPlayers = room.players.map((p, i) => {
-    if (i === room.describerIndex) return { ...p, lastPts: undefined };
-    const guessId = room.guesses[p.id];
-    if (!guessId) return { ...p, lastPts: 0 };
-    const guessColor = PALETTE_BY_ID.get(guessId);
-    const dist = colorDistance(target, guessColor);
-    const pts = scoreFromDistance(dist);
-    return { ...p, score: (p.score || 0) + pts, lastPts: pts };
+    if (i === room.describerIndex) return { ...p, lastPts: undefined, lastViaClue1: false };
+
+    // If the player already nailed it after clue 1 (snapshot), award that
+    // score plus a bonus — don't penalise them for staying put on clue 2.
+    const clue1GuessId = room.clue1Guesses[p.id];
+    if (clue1GuessId) {
+      const c1 = PALETTE_BY_ID.get(clue1GuessId);
+      const score1 = scoreFromDistance(colorDistance(target, c1));
+      if (score1 >= CORRECT_SCORE_THRESHOLD) {
+        const pts = score1 + CLUE1_BONUS;
+        return { ...p, score: (p.score || 0) + pts, lastPts: pts, lastViaClue1: true };
+      }
+    }
+
+    // Otherwise score the final guess at normal rates.
+    const finalGuessId = room.guesses[p.id];
+    if (!finalGuessId) return { ...p, lastPts: 0, lastViaClue1: false };
+    const cF = PALETTE_BY_ID.get(finalGuessId);
+    const pts = scoreFromDistance(colorDistance(target, cF));
+    return { ...p, score: (p.score || 0) + pts, lastPts: pts, lastViaClue1: false };
   });
 
   const guesserPts = newPlayers
@@ -305,9 +347,10 @@ function handleNextRound(ws, room) {
   room.clue1 = null;
   room.clue2 = null;
   room.guesses = {};
+  room.clue1Guesses = {};
   room.ready = {};
   room.round = (room.round || 1) + 1;
-  room.players = room.players.map(p => ({ ...p, lastPts: undefined }));
+  room.players = room.players.map(p => ({ ...p, lastPts: undefined, lastViaClue1: false }));
   broadcast(room);
 }
 
@@ -341,6 +384,7 @@ function handleDisconnect(ws) {
       room.clue1 = null;
       room.clue2 = null;
       room.guesses = {};
+      room.clue1Guesses = {};
       room.ready = {};
     }
   }

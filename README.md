@@ -75,8 +75,16 @@ That's it. No environment variables required. The client connects to
    everyone's ready flag so they can revise.
 4. Guessers refine their pick and click Ready again.
 5. Once everyone is ready, the describer hits **Reveal** — points are
-   awarded by RGB distance from the target. The describer earns 3 points
-   if guessers averaged ≥ 2 pts.
+   awarded by RGB distance from the target:
+   - If a guesser already nailed the color after **Clue 1** (≥ 4 pts at the
+     moment Clue 2 was sent), they get **score + 3 bonus** (so 7–8 pts).
+     This rewards getting it on the first try and means revising on Clue 2
+     can never drop their score.
+   - Otherwise: normal scoring on the final guess (max 5 pts).
+   - The describer earns 3 points if guessers averaged ≥ 2 pts.
+
+   While Clue 1 is live, the describer sees a **🎯 X/Y guessed the color**
+   counter — useful for deciding whether Clue 2 is worth giving.
 6. Describer role rotates each round.
 
 ## Architecture notes
